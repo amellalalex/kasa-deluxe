@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-kasa-deluxe"
+version = "0.1.0"
+description = "Local control, energy logging and a web UI for TPAP-only Kasa/Tapo plugs (KP125M)"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = [
+    "cryptography>=42",
+    "httpx>=0.27",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+kasadeluxe = "kasadeluxe.cli:main"
+
+[tool.setuptools]
+packages = ["kasadeluxe"]
+
+[tool.setuptools.package-data]
+kasadeluxe = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasa Deluxe</title>
+<style>
+:root {
+  --bg: #f5f6f8; --card: #fff; --fg: #1b1f24; --muted: #66707c; --line: #e2e5ea;
+  --accent: #2563eb; --accent-soft: #dbe6fd; --ok: #15803d; --warn: #b45309; --bad: #b91c1c;
+  --chart: #2563eb; --chart-fill: rgba(37,99,235,.12); --chart-peak: rgba(37,99,235,.35);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --card: #181b21; --fg: #e6e8eb; --muted: #9aa3ad; --line: #2a2f37;
+    --accent: #6c9cff; --accent-soft: #1f2b45; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+    --chart: #6c9cff; --chart-fill: rgba(108,156,255,.15); --chart-peak: rgba(108,156,255,.4);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--card); flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+header select { margin-left: auto; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; }
+@media (max-width: 860px) { .span-8, .span-6, .span-4 { grid-column: span 12; } }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-soft); }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pill.online::before { background: var(--ok); } .pill.offline::before { background: var(--warn); }
+.pill.auth_failed::before, .pill.locked::before { background: var(--bad); }
+.hero { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.big { font-size: 44px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.big small { font-size: 18px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; flex: 1; min-width: 260px; }
+.stat .k { font-size: 12px; color: var(--muted); } .stat .v { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.switch { width: 74px; height: 40px; border-radius: 20px; border: none; background: var(--line); position: relative; cursor: pointer; transition: background .15s; flex: none; }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 32px; height: 32px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .15s; }
+.switch.on { background: var(--ok); } .switch.on::after { left: 38px; }
+.switch:disabled { opacity: .5; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: none; background: transparent; color: var(--fg); padding: 5px 10px; cursor: pointer; font: inherit; font-size: 12px; }
+.seg button.active { background: var(--accent); color: #fff; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.row label { min-width: 120px; color: var(--muted); }
+.spacer { flex: 1; }
+button.btn { border: 1px solid var(--line); background: var(--card); color: var(--fg); border-radius: 7px; padding: 5px 12px; cursor: pointer; font: inherit; }
+button.btn:hover { border-color: var(--accent); } button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.btn.danger { color: var(--bad); }
+input, select { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px; }
+input[type=number] { width: 90px; }
+svg.chart { width: 100%; height: 240px; display: block; }
+svg.chart text { fill: var(--muted); font-size: 11px; }
+svg.chart .grid { stroke: var(--line); }
+.tip { font-size: 12px; color: var(--muted); min-height: 18px; font-variant-numeric: tabular-nums; }
+table { width: 100%; border-collapse: collapse; } td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
+th { color: var(--muted); font-weight: 500; }
+.muted { color: var(--muted); } .err { color: var(--bad); }
+.events { max-height: 260px; overflow: auto; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 13px; } dt { color: var(--muted); } dd { margin: 0; word-break: break-all; }
+#banner { display: none; grid-column: span 12; background: var(--accent-soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+#toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+#toast.show { opacity: .95; }
+.days { display: inline-flex; gap: 2px; } .days label { min-width: 0; }
+.days input { display: none; } .days span { display: inline-block; width: 26px; text-align: center; border: 1px solid var(--line); border-radius: 5px; padding: 2px 0; cursor: pointer; font-size: 12px; color: var(--fg); }
+.days input:checked + span { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Kasa Deluxe</h1>
+  <span id="status" class="pill">connecting</span>
+  <select id="devsel" hidden></select>
+</header>
+<main>
+  <div id="banner"></div>
+
+  <section class="card span-12">
+    <div class="hero">
+      <button id="sw" class="switch" aria-label="Power" disabled></button>
+      <div class="big"><span id="power">–</span><small>W</small></div>
+      <div class="stats">
+        <div class="stat"><div class="k">Voltage</div><div class="v" id="volt">–</div></div>
+        <div class="stat"><div class="k">Current</div><div class="v" id="amps">–</div></div>
+        <div class="stat"><div class="k">Today</div><div class="v" id="today">–</div></div>
+        <div class="stat"><div class="k">This month</div><div class="v" id="month">–</div></div>
+        <div class="stat"><div class="k">On today</div><div class="v" id="runtime">–</div></div>
+        <div class="stat"><div class="k">Wi-Fi</div><div class="v" id="rssi">–</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card span-12">
+    <div class="row">
+      <h2 style="margin:0">Power history (recorded here)</h2>
+      <span class="spacer"></span>
+      <div class="seg" id="range">
+        <button data-h="0.25">15m</button><button data-h="1" class="active">1h</button><button data-h="6">6h</button>
+        <button data-h="24">24h</button><button data-h="168">7d</button><button data-h="720">30d</button>
+      </div>
+      <a class="btn" id="csv" style="text-decoration:none;font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:7px;color:var(--fg)">CSV</a>
+    </div>
+    <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
+    <div class="tip" id="tip"></div>
+  </section>
+
+  <section class="card span-6">
+    <div class="row">
+      <h2 style="margin:0">Energy (from the plug)</h2>
+      <span class="spacer"></span>
+      <div class="seg" id="period"><button data-p="day" class="active">Today</button><button data-p="month">Month</button><button data-p="year">Year</button></div>
+    </div>
+    <svg class="chart" id="bars" style="height:180px" preserveAspectRatio="none"></svg>
+    <div class="tip" id="bartip"></div>
+    <dl id="usage" style="margin-top:10px"></dl>
+  </section>
+
+  <section class="card span-6">
+    <h2>Settings</h2>
+    <div class="row"><label>Name</label><input id="nick" maxlength="64" style="flex:1"><button class="btn" id="nickSave">Save</button></div>
+    <div class="row"><label>LED</label>
+      <div class="seg" id="led"><button data-v="always">On</button><button data-v="night_mode">Night mode</button><button data-v="never">Off</button></div></div>
+    <div class="row"><label>Auto-off</label><input type="checkbox" id="aoOn"> after <input type="number" id="aoMin" min="1" max="1440"> min <button class="btn" id="aoSave">Save</button></div>
+    <div class="row"><label>Overload cutoff</label><input type="checkbox" id="ppOn"> above <input type="number" id="ppW" min="1"> W <span class="muted" id="ppMax"></span><button class="btn" id="ppSave">Save</button></div>
+    <div class="row"><label>After power loss</label>
+      <select id="defState"><option value="last_states">Restore last state</option><option value="on">Always on</option><option value="off">Always off</option></select>
+      <button class="btn" id="defSave">Save</button></div>
+  </section>
+
+  <section class="card span-6">
+    <h2>Timer</h2>
+    <div class="row">Turn <select id="cdAct"><option value="0">off</option><option value="1">on</option></select> in
+      <input type="number" id="cdMin" min="1" max="1440" value="30"> min <button class="btn primary" id="cdSet">Start</button>
+      <button class="btn" id="cdCancel">Cancel</button></div>
+    <div class="muted" id="cdState"></div>
+    <h2 style="margin-top:18px">Schedules</h2>
+    <div class="row">
+      <input type="time" id="scTime" value="07:00">
+      <select id="scAct"><option value="1">on</option><option value="0">off</option></select>
+      <span class="days" id="scDays"></span>
+      <button class="btn primary" id="scAdd">Add</button>
+    </div>
+    <table><tbody id="scList"></tbody></table>
+  </section>
+
+  <section class="card span-6">
+    <h2>Activity</h2>
+    <div class="events"><table><tbody id="events"></tbody></table></div>
+  </section>
+
+  <section class="card span-12">
+    <div class="row"><h2 style="margin:0">Device</h2><span class="spacer"></span>
+      <button class="btn" id="reconnect">Reconnect</button><button class="btn danger" id="reboot">Reboot plug</button></div>
+    <dl id="devinfo"></dl>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const DAYS = ["S","M","T","W","T","F","S"];
+let token = "";
+try { token = localStorage.getItem("kasaToken") || ""; } catch {}
+let devId = null, hours = 1, period = "day", es = null, histTimer = null;
+
+function toast(msg, bad) {
+  const t = $("toast"); t.textContent = msg; t.style.background = bad ? "var(--bad)" : ""; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+async function api(path, opts = {}) {
+  const headers = { ...(opts.body ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: "Bearer " + token } : {}) };
+  const r = await fetch(path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  if (r.status === 401 && !path.includes("/reconnect")) {
+    const detail = (await r.json().catch(() => ({}))).detail || "";
+    if (detail.startsWith("missing or bad token")) {
+      const t = prompt("API token for this server:");
+      if (t != null) { token = t.trim(); try { localStorage.setItem("kasaToken", token); } catch {} return api(path, opts); }
+    }
+    throw new Error(detail || "unauthorized");
+  }
+  if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || r.statusText)); }
+  const ct = r.headers.get("content-type") || "";
+  return ct.includes("json") ? r.json() : r.text();
+}
+const dev = (p) => `/api/devices/${encodeURIComponent(devId)}${p}`;
+async function act(fn, ok) { try { await fn(); if (ok) toast(ok); setTimeout(refreshSlow, 400); } catch (e) { toast(e.message, true); } }
+
+const fmt = (v, d = 1) => v == null ? "–" : Number(v).toFixed(d);
+const fmtWh = (wh) => wh == null ? "–" : wh >= 1000 ? (wh / 1000).toFixed(2) + " kWh" : Math.round(wh) + " Wh";
+const fmtMin = (m) => m == null ? "–" : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const axisTime = (ts) => new Date(ts * 1000).toLocaleString([], hours > 24 ? { month: "short", day: "numeric" } : { hour: "numeric", minute: "2-digit" });
+const tstr = (ts, long) => new Date(ts * 1000).toLocaleString([], long ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" } : { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+// ------------------------------------------------------------------ live
+function setStatus(st, err) {
+  const p = $("status"); p.className = "pill " + st; p.textContent = st.replace("_", " ");
+  const b = $("banner");
+  if (st === "auth_failed" || st === "locked") {
+    b.style.display = "block";
+    b.innerHTML = `<b>Plug login ${st === "locked" ? "locked" : "failed"}.</b> ${escapeHtml(err || "")}<br>
+      Polling is paused so repeated attempts don't lock the plug. Fix the credentials in config.toml (your TP-Link account email/password) and restart, or press Reconnect.`;
+  } else if (st === "offline") {
+    b.style.display = "block"; b.innerHTML = `<b>Plug unreachable.</b> ${escapeHtml(err || "")} Retrying with backoff.`;
+  } else b.style.display = "none";
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function showSample(s) {
+  if (!s) return;
+  const sw = $("sw"); sw.disabled = false; sw.classList.toggle("on", !!s.on);
+  $("power").textContent = fmt(s.power_w, s.power_w != null && s.power_w < 10 ? 2 : 1);
+  $("volt").textContent = s.voltage_v == null ? "–" : fmt(s.voltage_v) + " V";
+  $("amps").textContent = s.current_a == null ? "–" : fmt(s.current_a, 3) + " A";
+  $("today").textContent = fmtWh(s.today_wh);
+  $("month").textContent = fmtWh(s.month_wh);
+  $("runtime").textContent = fmtMin(s.today_runtime_min);
+  $("rssi").textContent = s.rssi == null ? "–" : s.rssi + " dBm";
+}
+
+function showSummary(d) {
+  const name = d.name || d.id;
+  $("title").textContent = name; document.title = name + " · Kasa Deluxe";
+  setStatus(d.status, d.error); showSample(d.sample);
+  const i = d.info || {}, tp = d.tpap || {};
+  const rows = [["Model", `${i.model || "?"} (${i.type || "?"})`], ["Firmware", i.fw_ver], ["Hardware", i.hw_ver], ["IP / host", d.host],
+    ["MAC", i.mac || tp.mac], ["Wi-Fi", i.ssid ? `${i.ssid} (${i.rssi} dBm)` : null], ["On for", i.device_on ? fmtMin(Math.round((i.on_time || 0) / 60)) : "off"],
+    ["Overcurrent", i.overcurrent_status], ["Overload", i.power_protection_status], ["Region", i.region],
+    ["TPAP", tp.pake ? `pake ${JSON.stringify(tp.pake)}, tls ${tp.tls}` : null], ["Last poll", d.last_ok ? tstr(d.last_ok) : "never"]];
+  $("devinfo").innerHTML = rows.filter(r => r[1] != null).map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join("") + ($("devinfo").dataset.extra || "");
+  if (document.activeElement !== $("nick")) $("nick").value = i.nickname || "";
+}
+
+function connectStream() {
+  if (es) es.close();
+  es = new EventSource("/api/stream" + (token ? "?token=" + encodeURIComponent(token) : ""));
+  es.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.device !== devId) return;
+    if (m.kind === "summary") showSummary(m.data);
+    else if (m.kind === "sample") { showSample(m.data); pushLive(m.data); }
+    else if (m.kind === "status") { setStatus(m.data.status, m.data.error); if (m.data.status === "online") refreshSlow(); }
+  };
+  es.onerror = () => { $("status").className = "pill"; $("status").textContent = "server lost"; };
+}
+
+// ------------------------------------------------------------------ chart
+let hist = null;
+function pushLive(s) {
+  if (!hist || hours > 1 || s.power_w == null) return;
+  hist.points.push({ t: s.ts, power_w: s.power_w, power_max_w: s.power_w });
+  const cut = Date.now() / 1000 - hours * 3600; hist.points = hist.points.filter(p => p.t >= cut);
+  hist.until = s.ts; hist.since = s.ts - hours * 3600; drawChart();
+}
+async function loadHistory() {
+  try {
+    hist = await api(dev(`/history?hours=${hours}&points=300`));
+    drawChart();
+  } catch (e) { $("tip").textContent = e.message; }
+  $("csv").href = dev(`/history.csv?hours=${Math.max(hours, 1)}`) + (token ? "&token=" + encodeURIComponent(token) : "");
+}
+function niceMax(v) { if (v <= 0) return 10; const e = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * e >= v) return m * e; return 10 * e; }
+function drawChart() {
+  const svg = $("chart"), bb = svg.getBoundingClientRect(), W = Math.round(bb.width) || 800, H = Math.round(bb.height) || 240, L = 44, R = 8, T = 8, B = 22;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  if (!hist || !hist.points.length) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">No samples recorded in this range yet</text>`; $("tip").textContent = ""; return; }
+  const pts = hist.points.filter(p => p.power_w != null);
+  const ymax = niceMax(Math.max(...pts.map(p => p.power_max_w ?? p.power_w), 1));
+  const x = (t) => L + (t - hist.since) / (hist.until - hist.since) * (W - L - R), y = (v) => T + (1 - v / ymax) * (H - T - B);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = ymax * i / 4; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v >= 1000 ? (v / 1000).toFixed(1) + "k" : +v.toFixed(1)}</text>`; }
+  for (let i = 0; i <= 5; i++) { const t = hist.since + (hist.until - hist.since) * i / 5; g += `<text x="${x(t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === 5 ? "end" : "middle"}">${axisTime(t)}</text>`; }
+  // break the line across gaps longer than 3 buckets
+  const gap = Math.max((hist.bucket_s || 5) * 3, 30);
+  let segs = [], cur = [];
+  pts.forEach((p, i) => { if (i && p.t - pts[i - 1].t > gap) { segs.push(cur); cur = []; } cur.push(p); }); segs.push(cur);
+  for (const s of segs) {
+    if (!s.length) continue;
+    const line = s.map(p => `${x(p.t).toFixed(1)},${y(p.power_w).toFixed(1)}`).join(" ");
+    const peak = s.map(p => `${x(p.t).toFixed(1)},${y(p.power_max_w ?? p.power_w).toFixed(1)}`).join(" ");
+    g += `<polygon fill="var(--chart-fill)" points="${x(s[0].t)},${y(0)} ${line} ${x(s[s.length - 1].t)},${y(0)}"/>`;
+    if (hours > 1) g += `<polyline fill="none" stroke="var(--chart-peak)" stroke-width="1" points="${peak}"/>`;
+    g += `<polyline fill="none" stroke="var(--chart)" stroke-width="1.8" stroke-linejoin="round" points="${line}"/>`;
+  }
+  g += `<line id="cross" class="grid" y1="${T}" y2="${H - B}" style="display:none;stroke:var(--muted)"/><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/>`;
+  svg.innerHTML = g;
+  const avg = pts.reduce((a, p) => a + p.power_w, 0) / pts.length;
+  const summary = `Avg ${fmt(avg)} W · peak ${fmt(Math.max(...pts.map(p => p.power_max_w ?? p.power_w)))} W · ${fmtWh(hist.energy_wh)} used in range`;
+  $("tip").textContent = summary;
+  $("hit").onmousemove = (ev) => {
+    const r = svg.getBoundingClientRect(), t = hist.since + (ev.clientX - r.left - L) / (r.width - L - R) * (hist.until - hist.since);
+    let best = pts[0]; for (const p of pts) if (Math.abs(p.t - t) < Math.abs(best.t - t)) best = p;
+    const c = $("cross"); c.style.display = ""; c.setAttribute("x1", x(best.t)); c.setAttribute("x2", x(best.t));
+    $("tip").textContent = `${tstr(best.t, true)} · ${fmt(best.power_w)} W` + (best.voltage_v ? ` · ${fmt(best.voltage_v)} V` : "") + (hours > 1 ? ` · peak ${fmt(best.power_max_w)} W` : "");
+  };
+  $("hit").onmouseleave = () => { $("cross").style.display = "none"; $("tip").textContent = summary; };
+}
+
+async function loadBars() {
+  const svg = $("bars"), bb = svg.getBoundingClientRect(), W = Math.round(bb.width) || 500, H = Math.round(bb.height) || 180, L = 36, B = 20, T = 6;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let d;
+  try { d = await api(dev(`/energy-history?period=${period}`)); } catch (e) { svg.innerHTML = ""; $("bartip").textContent = e.message; return; }
+  const data = d.data || [], n = data.length;
+  if (!n) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle">No data</text>`; return; }
+  const ymax = niceMax(Math.max(...data, 1)), bw = (W - L) / n;
+  const label = (i) => period === "day" ? `${i}:00` : period === "month" ? `Day ${i + 1}` : new Date(2000, i, 1).toLocaleString([], { month: "short" });
+  let g = "";
+  for (let i = 0; i <= 3; i++) { const v = ymax * i / 3, yy = T + (1 - v / ymax) * (H - T - B); g += `<line class="grid" x1="${L}" x2="${W}" y1="${yy}" y2="${yy}"/><text x="${L - 4}" y="${yy + 4}" text-anchor="end">${+v.toFixed(0)}</text>`; }
+  data.forEach((v, i) => {
+    const h = v / ymax * (H - T - B);
+    g += `<rect x="${L + i * bw + bw * .15}" y="${H - B - h}" width="${bw * .7}" height="${Math.max(h, v ? 1 : 0)}" rx="2" fill="var(--chart)" data-i="${i}"><title>${label(i)}: ${v} Wh</title></rect>`;
+    const step = Math.ceil(n / 8);
+    if (i % step === 0) g += `<text x="${L + i * bw + bw / 2}" y="${H - 5}" text-anchor="middle">${period === "day" ? i : period === "month" ? i + 1 : label(i)}</text>`;
+  });
+  svg.innerHTML = g;
+  const total = data.reduce((a, b) => a + b, 0);
+  $("bartip").textContent = `${fmtWh(total)} ${period === "day" ? "today" : period === "month" ? "this month" : "this year"} (Wh per ${period === "day" ? "hour" : period === "month" ? "day" : "month"})`;
+  svg.querySelectorAll("rect[data-i]").forEach(r => r.onmouseenter = () => $("bartip").textContent = `${label(+r.dataset.i)}: ${data[+r.dataset.i]} Wh`);
+}
+
+// ------------------------------------------------------------------ slow refresh
+async function refreshSlow() {
+  if (!devId) return;
+  const [st, use, ev] = await Promise.allSettled([api(dev("/settings")), api(dev("/usage")), api(dev("/events?limit=60"))]);
+  if (st.status === "fulfilled") showSettings(st.value);
+  if (use.status === "fulfilled") showUsage(use.value);
+  if (ev.status === "fulfilled") $("events").innerHTML = ev.value.map(e => `<tr><td class="muted" style="white-space:nowrap">${tstr(e.ts, true)}</td><td>${escapeHtml(e.kind)}</td><td class="muted">${escapeHtml(e.detail || "")}</td></tr>`).join("") || `<tr><td class="muted">No activity yet</td></tr>`;
+}
+function showUsage(u) {
+  const pu = (u.get_device_usage || {}).power_usage || {}, tu = (u.get_device_usage || {}).time_usage || {};
+  const price = u.get_electricity_price_config || {};
+  const rows = [["Last 7 days", `${fmtWh(pu.past7)} · on ${fmtMin(tu.past7)}`], ["Last 30 days", `${fmtWh(pu.past30)} · on ${fmtMin(tu.past30)}`]];
+  if (price.constant_price) rows.push(["Est. cost (30d)", `${((pu.past30 || 0) / 1000 * price.constant_price / 1000).toFixed(2)} (at ${price.constant_price / 1000}/kWh)`]);
+  $("usage").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+function showSettings(s) {
+  const led = s.get_led_info || {}; document.querySelectorAll("#led button").forEach(b => b.classList.toggle("active", b.dataset.v === led.led_rule));
+  const ao = s.get_auto_off_config || {}; if (!isEditing("aoMin")) { $("aoOn").checked = !!ao.enable; $("aoMin").value = ao.delay_min ?? 120; }
+  const pp = s.get_protection_power || {}, mx = (s.get_max_power || {}).max_power;
+  if (!isEditing("ppW")) { $("ppOn").checked = !!pp.enabled; $("ppW").value = pp.protection_power || ""; }
+  $("ppMax").textContent = mx ? `(max ${mx})` : ""; if (mx) $("ppW").max = mx;
+  const cd = s.get_countdown_rules || {}, active = (cd.rule_list || []).find(r => r.enable);
+  $("cdState").textContent = active ? `Will turn ${active.desired_states?.on ? "on" : "off"} in ${fmtMin(Math.ceil((active.remain ?? active.delay) / 60))}` : "No timer running";
+  const sc = (s.get_schedule_rules || {}).rule_list || [];
+  $("scList").innerHTML = sc.length ? sc.map(r => `<tr><td>${hhmm(r.s_min || 0)}</td><td>turn ${r.desired_states?.on ? "on" : "off"}</td>
+      <td class="muted">${weekdays(r.week_day)}</td>
+      <td><input type="checkbox" ${r.enable ? "checked" : ""} data-sid="${escapeHtml(r.id)}" title="enabled"></td>
+      <td><button class="btn danger" data-del="${escapeHtml(r.id)}">Delete</button></td></tr>`).join("") : `<tr><td class="muted">No schedules</td></tr>`;
+  const m = s.get_matter_setup_info || {}, fw = s.get_latest_fw || {};
+  const extra = [["Matter pairing code", m.setup_code ? m.setup_code.replace(/^(\d{4})(\d{3})(\d+)$/, "$1-$2-$3") : null], ["Matter QR payload", m.setup_payload],
+    ["Firmware update", fw.need_to_upgrade ? `available: ${fw.fw_ver}` : fw.fw_ver ? "up to date" : null]];
+  $("devinfo").dataset.extra = extra.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join("");
+  api(dev("")).then(showSummary).catch(() => {});
+}
+const isEditing = (id) => document.activeElement === $(id);
+function weekdays(mask) { if (mask === 127 || mask == null) return "every day"; if (mask === 62) return "weekdays"; if (mask === 65) return "weekends"; return DAYS.map((d, i) => mask & (1 << i) ? d : "·").join(""); }
+
+// ------------------------------------------------------------------ wiring
+$("sw").onclick = () => { const on = !$("sw").classList.contains("on"); $("sw").classList.toggle("on", on); act(() => api(dev("/power"), { method: "POST", body: { on } })); };
+document.querySelectorAll("#range button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#range button").forEach(x => x.classList.toggle("active", x === b)); hours = +b.dataset.h; try { localStorage.setItem("kasaHours", hours); } catch {} loadHistory();
+});
+document.querySelectorAll("#period button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#period button").forEach(x => x.classList.toggle("active", x === b)); period = b.dataset.p; loadBars();
+});
+document.querySelectorAll("#led button").forEach(b => b.onclick = () => act(() => api(dev("/led"), { method: "PUT", body: { rule: b.dataset.v } }), "LED updated"));
+$("nickSave").onclick = () => act(() => api(dev("/name"), { method: "PUT", body: { name: $("nick").value.trim() } }), "Renamed");
+$("aoSave").onclick = () => act(() => api(dev("/auto-off"), { method: "PUT", body: { enable: $("aoOn").checked, delay_min: +$("aoMin").value || null } }), "Auto-off saved");
+$("ppSave").onclick = () => act(() => api(dev("/protection"), { method: "PUT", body: { enabled: $("ppOn").checked, threshold_w: +$("ppW").value || null } }), "Overload protection saved");
+$("defSave").onclick = () => { const v = $("defState").value; act(() => api(dev("/default-state"), { method: "PUT", body: v === "last_states" ? { type: v } : { type: "custom", on: v === "on" } }), "Saved"); };
+$("cdSet").onclick = () => act(() => api(dev("/countdown"), { method: "POST", body: { seconds: Math.round(+$("cdMin").value * 60), on: $("cdAct").value === "1" } }), "Timer started");
+$("cdCancel").onclick = () => act(() => api(dev("/countdown"), { method: "DELETE" }), "Timer cancelled");
+$("scDays").innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" value="${i}" checked><span>${d}</span></label>`).join("");
+$("scAdd").onclick = () => {
+  const [h, m] = $("scTime").value.split(":").map(Number);
+  const mask = [...$("scDays").querySelectorAll("input:checked")].reduce((a, c) => a | (1 << +c.value), 0);
+  if (!mask) return toast("Pick at least one day", true);
+  act(() => api(dev("/schedules"), { method: "POST", body: { minute_of_day: h * 60 + m, on: $("scAct").value === "1", week_days: mask } }), "Schedule added");
+};
+$("scList").onclick = (ev) => {
+  const del = ev.target.dataset.del, sid = ev.target.dataset.sid;
+  if (del && confirm("Delete this schedule?")) act(() => api(dev(`/schedules/${encodeURIComponent(del)}`), { method: "DELETE" }), "Deleted");
+  if (sid) act(() => api(dev(`/schedules/${encodeURIComponent(sid)}`), { method: "PATCH", body: { enabled: ev.target.checked } }));
+};
+$("reconnect").onclick = () => act(() => api(dev("/reconnect"), { method: "POST" }), "Reconnecting…");
+$("reboot").onclick = () => confirm("Reboot the plug? Power to the load is interrupted briefly.") && act(() => api(dev("/reboot"), { method: "POST" }), "Rebooting");
+$("devsel").onchange = () => selectDevice($("devsel").value);
+window.addEventListener("resize", () => { drawChart(); });
+
+async function selectDevice(id) {
+  devId = id; try { localStorage.setItem("kasaDevice", id); } catch {}
+  showSummary(await api(dev(""))); loadHistory(); loadBars(); refreshSlow();
+}
+
+(async function init() {
+  try { const h = +localStorage.getItem("kasaHours"); if (h) { hours = h; document.querySelectorAll("#range button").forEach(x => x.classList.toggle("active", +x.dataset.h === h)); } } catch {}
+  let devices;
+  try { devices = await api("/api/devices"); } catch (e) { setStatus("offline", e.message); return; }
+  if (!devices.length) { $("banner").style.display = "block"; $("banner").textContent = "No devices configured. Add one to config.toml."; return; }
+  const sel = $("devsel"); sel.innerHTML = devices.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join(""); sel.hidden = devices.length < 2;
+  let saved = null; try { saved = localStorage.getItem("kasaDevice"); } catch {}
+  const first = devices.find(d => d.id === saved) ? saved : devices[0].id; sel.value = first;
+  connectStream(); await selectDevice(first);
+  clearInterval(histTimer); histTimer = setInterval(() => { if (hours > 1) loadHistory(); refreshSlow(); }, 60000);
+})();
+</script>
+</body>
+</html>

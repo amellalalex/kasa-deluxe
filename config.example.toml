@@ -1,0 +1,24 @@
+# Copy to config.toml (which is git-ignored) and fill in.
+# Every value can also come from the environment: KASA_USERNAME, KASA_PASSWORD,
+# KASA_HOST, KASA_API_TOKEN, KASA_BIND, KASA_PORT_HTTP, KASA_POLL, KASA_DB.
+
+[server]
+bind = "127.0.0.1"      # use "0.0.0.0" to reach the UI from other machines (set a token!)
+port = 8125
+token = ""              # if set, the API/UI require "Authorization: Bearer <token>"
+poll_interval = 5       # seconds between readings
+db = "data/kasa.db"
+keep_days = 90          # local history retention
+
+# The KP125M on firmware 1.4.x logs in with your TP-Link / Kasa app account.
+# A wrong password counts toward the plug's lockout; the server stops after one failure.
+[account]
+username = "you@example.com"
+password = ""
+
+[[device]]
+id = "plug"
+host = "192.168.1.50"
+name = "Smart Plug"
+# port = 80
+# username / password can be overridden per device
